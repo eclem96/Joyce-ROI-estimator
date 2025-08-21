@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Joyce Window ROI Estimator (Locked Good + Email + FAQ)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--brand:#0C5AA6;--accent:#18A957;--muted:#eef3f8;--ink:#1b1f23}
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);margin:0;background:#fff}
+  .wrap{max-width:1100px;margin:auto;padding:24px}
+  h1{font-size:1.6rem;margin:0 0 6px}
+  .sub{color:#5b6670;margin:0 0 18px}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+  @media (max-width: 920px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid #e3e8ee;border-radius:12px;padding:16px}
+  .card h3{margin:0 0 12px;font-size:1.05rem}
+  label{display:block;font-size:.9rem;margin:8px 0 4px}
+  input[type="number"], input[type="text"], input[type="email"]{
+    width:100%;padding:10px;border:1px solid #d6dde6;border-radius:8px;font-size:.95rem;background:#fff
+  }
+  .row{display:flex;gap:12px;align-items:center}
+  .row > *{flex:1}
+  .opt{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .opt input{transform:scale(1.05)}
+  .tier{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .tier label{display:flex;align-items:center;gap:8px;border:1px solid #dfe5ee;border-radius:10px;padding:8px 10px;cursor:pointer;background:#f9fbff}
+  .pill{display:inline-block;background:var(--muted);padding:4px 10px;border-radius:999px;font-size:.82rem}
+  .range{display:flex;align-items:center;gap:10px}
+  input[type="range"]{flex:1}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+  .kpi .box{background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:12px;text-align:center}
+  .kpi .val{font-weight:700;font-size:1.05rem}
+  .note{font-size:.85rem;color:#5b6670}
+  .hi{color:var(--accent);font-weight:700}
+  .cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  button{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+  button.secondary{background:#f3f6fa;color:#0b1220;border:1px solid #dfe5ee}
+  .divider{height:1px;background:#e8edf3;margin:12px 0}
+  .muted{opacity:.7}
+  .explainer{background:#f7fafc;border:1px solid #e6edf5;border-radius:10px;padding:10px;margin-bottom:10px}
+  .explainer ul{margin:6px 0 0 18px;padding:0}
+  .explainer li{margin:4px 0}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;display:none;background:rgba(0,0,0,.35);align-items:center;justify-content:center;padding:20px;z-index:1000}
+  .modal.open{display:flex}
+  .modal .sheet{background:#fff;border-radius:12px;max-width:520px;width:100%;padding:16px;border:1px solid #dfe5ee}
+  .sheet h4{margin:0 0 8px}
+  .sheet .row{margin:8px 0}
+  .sheet .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+  .small{font-size:.82rem;color:#5b6670}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.85rem}
+  .locknote{background:#fff6e5;border:1px solid #ffe0a6;border-radius:8px;padding:8px;margin-top:6px}
+  /* FAQ */
+  .faq{max-width:1100px;margin:18px auto 32px;padding:0 24px}
+  .faq h2{font-size:1.2rem;margin:0 0 8px}
+  .faq details{border:1px solid #e6edf5;border-radius:10px;padding:10px 12px;background:#fbfdff;margin:8px 0}
+  .faq summary{cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Window ROI Estimator</h1>
+  <p class="sub">Estimate your potential ROI from Joyce replacement windows by combining <span class="pill">resale value</span> + <span class="pill">energy savings</span>. Use the <strong>years</strong> slider to see how time impacts ROI, and choose a <strong>Good / Better / Best</strong> package.</p>
+
+  <div class="grid">
+    <!-- Left: Inputs -->
+    <div class="card">
+      <h3>1) Project, Pricing & ZIP</h3>
+
+      <div class="row">
+        <div>
+          <label>ZIP Code <span class="note muted">(sets regional energy inflation)</span></label>
+          <input type="text" id="zip" value="44114" maxlength="10" placeholder="e.g., 44114">
+        </div>
+        <div>
+          <label>Energy Inflation (%/yr)</label>
+          <input type="number" id="infl" value="3.5" step="0.1" min="0" max="10">
+        </div>
+      </div>
+      <div class="cta" style="margin:6px 0 10px">
+        <button type="button" onclick="applyZip()">Apply ZIP</button>
+        <button type="button" class="secondary" onclick="clearZip()">Clear ZIP</button>
+        <span id="zipMsg" class="note"></span>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Number of Windows</label>
+          <input type="number" id="numWindows" value="12" min="1" step="1">
+        </div>
+        <div>
+          <label>Avg Monthly Energy Bill ($)</label>
+          <input type="number" id="bill" value="250" min="50" step="10">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>2) Choose Your Package</h3>
+
+      <div class="explainer">
+        <strong>What’s the difference?</strong>
+        <ul>
+          <li><strong>Good ($900–$1,100)</strong> — <em>J2 glass</em> (double Low‑E). As‑is package; price varies only by window <em>size</em> & <em>type</em>.</li>
+          <li><strong>Better ($1,250–$1,600)</strong> — <em>J31 glass</em> (quad Low‑E + Super Spacer) with paint + hardware defaults; configurable.</li>
+          <li><strong>Best ($1,400–$1,900)</strong> — J31 standard + paint + hardware + optional triple‑pane for max efficiency.</li>
+        </ul>
+      </div>
+
+      <div class="tier" role="group" aria-label="Good Better Best">
+        <label><input type="radio" name="tier" value="good" checked> <strong>Good</strong> <span class="note">($900–$1,100 • J2)</span></label>
+        <label><input type="radio" name="tier" value="better"> <strong>Better</strong> <span class="note">($1,250–$1,600 • J31)</span></label>
+        <label><input type="radio" name="tier" value="best"> <strong>Best</strong> <span class="note">($1,400–$1,900 • J31)</span></label>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>Per‑Window Price (within selected tier)</label>
+          <div class="range">
+            <input type="range" id="priceSlider" min="900" max="1900" step="25" value="1000" oninput="priceOut.textContent='$'+fmt(this.value)">
+            <span id="priceOut">$1,000</span>
+          </div>
+        </div>
+        <div>
+          <label>Efficiency Improvement (%)</label>
+          <div class="range">
+            <input type="range" id="effSlider" min="10" max="40" step="1" value="18" oninput="effOut.textContent=this.value+'%'">
+            <span id="effOut">18%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upgrades (automatically disabled on Good) -->
+      <div class="opt">
+        <input type="checkbox" id="optPaint">
+        <label for="optPaint" style="margin:0">Painted Exterior (+$300)</label>
+      </div>
+      <div class="opt">
+        <input type="checkbox" id="optHardware">
+        <label for="optHardware" style="margin:0">Hardware Upgrade (+$100)</label>
+      </div>
+      <div class="opt">
+        <input type="checkbox" id="optTriple">
+        <label for="optTriple" style="margin:0">Triple-Pane Glass (+$100)</label>
+      </div>
+      <div id="goodLockNote" class="locknote" style="display:none">Upgrades are not available in the <strong>Good (as‑is)</strong> package. Price is based only on <em>size</em> and <em>window type</em>.</div>
+
+      <div class="note">Good uses <strong>J2 glass</strong> (double Low‑E). Better/Best include <strong>J31</strong> (quad Low‑E + Super Spacer). Triple‑pane is an optional upgrade (typically with Best).</div>
+
+      <div class="divider"></div>
+
+      <h3>3) Time Horizon & Resale</h3>
+      <div class="row">
+        <div class="range">
+          <label style="min-width:120px">Years in Home</label>
+          <input type="range" id="years" min="1" max="30" value="15" oninput="yearsOut.textContent=this.value">
+          <span id="yearsOut">15</span>
+        </div>
+        <div>
+          <label>Resale Recoup Rate (%)</label>
+          <input type="number" id="recoup" value="70" min="40" max="95" step="1">
+        </div>
+      </div>
+      <div>
+        <label>Include Resale Value at Year</label>
+        <input type="number" id="sellYear" value="10" min="1" step="1">
+      </div>
+    </div>
+
+    <!-- Right: Results -->
+    <div class="card">
+      <h3>Results</h3>
+
+      <div class="kpi">
+        <div class="box"><div class="val" id="kpiCost">$—</div><div class="note">Total Investment</div></div>
+        <div class="box"><div class="val" id="kpiResale">$—</div><div class="note">Resale Value Recoup</div></div>
+        <div class="box"><div class="val" id="kpiSave">$—</div><div class="note">Cumulative Energy Savings</div></div>
+        <div class="box"><div class="val" id="kpiROI">$—</div><div class="note">Total ROI (at year)</div></div>
+      </div>
+
+      <canvas id="roiChart" height="220" aria-label="ROI Over Time"></canvas>
+      <div class="note" id="breakEvenNote" style="margin-top:8px"></div>
+
+      <div class="divider"></div>
+      <div id="details" class="note"></div>
+
+      <div class="cta">
+        <button type="button" onclick="calc(true)">Recalculate</button>
+        <button type="button" class="secondary" onclick="resetDefaults()">Reset</button>
+        <button type="button" onclick="openEmail()">Email me this estimate</button>
+      </div>
+      <p class="note" style="margin-top:6px">Educational estimate. Actual savings depend on home size, climate, installation, and energy mix.</p>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL MODAL -->
+<div id="emailModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="emailTitle">
+  <div class="sheet">
+    <h4 id="emailTitle">Email this estimate</h4>
+    <div class="row"><div>
+      <label>Your Name</label>
+      <input type="text" id="leadName" placeholder="Jane Doe">
+    </div></div>
+    <div class="row"><div>
+      <label>Your Email</label>
+      <input type="email" id="leadEmail" placeholder="you@example.com">
+    </div></div>
+    <div class="small" style="margin-top:6px">We generate a pre‑filled email with your current selections. If your mail app doesn’t open, use “Copy summary.”</div>
+    <div class="actions">
+      <button type="button" class="secondary" onclick="copySummary()">Copy summary</button>
+      <button type="button" onclick="sendEmail()">Send email</button>
+      <button type="button" class="secondary" onclick="closeEmail()">Close</button>
+    </div>
+    <div id="copyMsg" class="small" style="margin-top:6px"></div>
+    <details style="margin-top:10px"><summary class="small">What gets sent?</summary>
+      <pre class="mono" id="previewBox" style="white-space:pre-wrap;max-height:220px;overflow:auto;background:#f8fafc;border:1px solid #e8edf3;border-radius:8px;padding:8px"></pre>
+    </details>
+  </div>
+</div>
+
+<!-- FAQ -->
+<section class="faq" aria-labelledby="faqHeading">
+  <h2 id="faqHeading">FAQs – Good Option (As‑Is)</h2>
+
+  <details open>
+    <summary>Can I upgrade the glass, paint, or hardware on the Good option?</summary>
+    <div class="note" style="margin-top:6px">
+      No. The Good series is an <strong>as‑is product</strong>. To keep costs low and lead times short, glass, paint, and hardware are fixed. Price is determined only by <em>window size</em> and <em>type</em>.
+    </div>
+  </details>
+
+  <details>
+    <summary>Why doesn’t the Good option allow upgrades?</summary>
+    <div class="note" style="margin-top:6px">
+      Good is designed for homeowners who want the most affordable package. By locking specs (standard glass, finish, hardware), we streamline production and pass the savings to you. If you need customization, choose <strong>Better</strong> or <strong>Best</strong>.
+    </div>
+  </details>
+
+  <details>
+    <summary>What if I select an upgrade by mistake?</summary>
+    <div class="note" style="margin-top:6px">
+      Upgrade boxes are disabled when you pick <strong>Good</strong>, so you’ll never be charged for options that aren’t available. If you want paint colors, hardware finishes, or glass upgrades, switch to <strong>Better</strong> or <strong>Best</strong>.
+    </div>
+  </details>
+</section>
+
+<script>
+  // Utilities
+  const $ = (id)=>document.getElementById(id);
+  const fmt = (n)=> Number(n).toLocaleString(undefined,{maximumFractionDigits:0});
+  const money = (n)=> '$'+fmt(n);
+
+  // ZIP -> region inflation heuristic (by first digit)
+  const regionInflationDefaults = {
+    '0': 4.0, '1': 4.0, '2': 3.8, // Northeast
+    '3': 3.2, '4': 3.2,          // Southeast / Mid-Atlantic
+    '5': 3.0, '6': 3.1,          // Midwest / Central
+    '7': 3.3,                    // South Central
+    '8': 3.4,                    // Mountain
+    '9': 3.6                     // West
+  };
+
+  // Chart
+  const ctx = $('roiChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:[], datasets:[
+      {label:'Cumulative Energy Savings', data:[], borderColor:'#18A957', backgroundColor:'rgba(24,169,87,.12)', tension:.25, fill:true},
+      {label:'Total ROI (Savings + Resale – Cost)', data:[], borderColor:'#0C5AA6', backgroundColor:'rgba(12,90,166,.1)', tension:.25, fill:true},
+    ]},
+    options:{
+      responsive:true,
+      plugins:{legend:{position:'bottom'}},
+      scales:{y:{ticks:{callback:(v)=>'$'+fmt(v)}}}
+    }
+  });
+
+  // Tiers & defaults
+  const tiers = {
+    good:   { min: 900,  max: 1100, defaultEff: 18, opts:{paint:false, hardware:false, triple:false, glass:"J2 (Double Low-E)"} },
+    better: { min: 1250, max: 1600, defaultEff: 24, opts:{paint:true,  hardware:true,  triple:false, glass:"J31 (Quad Low-E + Super Spacer)"} },
+    best:   { min: 1400, max: 1900, defaultEff: 28, opts:{paint:true,  hardware:true,  triple:true,  glass:"J31 (Quad Low-E + Super Spacer)"} }
+  };
+
+  function clampPriceToTier(val, tier){
+    const t = tiers[tier];
+    return Math.min(t.max, Math.max(t.min, Number(val)));
+  }
+
+  function lockGoodUpgrades(isGood){
+    const ids = ['optPaint','optHardware','optTriple'];
+    ids.forEach(id=>{
+      if(isGood){ $(id).checked = false; $(id).disabled = true; }
+      else { $(id).disabled = false; }
+    });
+    $('goodLockNote').style.display = isGood ? 'block' : 'none';
+  }
+
+  function setTierUI(tier){
+    const t = tiers[tier];
+    // Price slider bounds + reasonable default (midpoint if out of range)
+    $('priceSlider').min = t.min;
+    $('priceSlider').max = t.max;
+    const mid = Math.round((t.min + t.max)/2);
+    const cur = Number($('priceSlider').value);
+    $('priceSlider').value = (cur < t.min || cur > t.max) ? mid : cur;
+    $('priceOut').textContent = money($('priceSlider').value);
+
+    // Efficiency default to tier
+    $('effSlider').value = t.defaultEff;
+    $('effOut').textContent = t.defaultEff + '%';
+
+    // Upgrades: Good = locked off, Better/Best = set per tier defaults
+    if(tier === 'good'){
+      lockGoodUpgrades(true);
+    } else {
+      lockGoodUpgrades(false);
+      $('optPaint').checked    = t.opts.paint;
+      $('optHardware').checked = t.opts.hardware;
+      $('optTriple').checked   = t.opts.triple;
+    }
+  }
+
+  function applyZip(){
+    const z = $('zip').value.trim();
+    const digit = (z.match(/\d/)||[])[0];
+    if(!digit){ $('zipMsg').textContent='Enter a valid ZIP to set regional inflation.'; return; }
+    const inf = regionInflationDefaults[digit];
+    if(inf){
+      $('infl').value = inf.toFixed(1);
+      $('zipMsg').textContent = `ZIP applied → regional energy inflation set to ${inf.toFixed(1)}%/yr.`;
+      calc(true);
+    } else {
+      $('zipMsg').textContent='ZIP area not recognized; left inflation unchanged.';
+    }
+  }
+  function clearZip(){ $('zip').value=''; $('zipMsg').textContent=''; }
+
+  function inputs(){
+    const tier = document.querySelector('input[name="tier"]:checked').value;
+    const numWindows = +$('numWindows').value;
+
+    // Base per-window price from slider (within tier range)
+    const basePerWindow = clampPriceToTier($('priceSlider').value, tier);
+    let perWindow = +basePerWindow;
+
+    // Upgrades (paint $300, hardware $100, triple-pane $100) — disabled for Good
+    if ($('optPaint').checked) perWindow += 300;
+    if ($('optHardware').checked) perWindow += 100;
+    if ($('optTriple').checked) perWindow += 100;
+
+    const eff = +$('effSlider').value / 100;
+
+    return {
+      tier,
+      numWindows,
+      perWindow,
+      investment: numWindows * perWindow,
+      recoup: +$('recoup').value / 100,
+      sellYear: Math.max(1, Math.min(30, +$('sellYear').value)),
+      bill: +$('bill').value,
+      eff,
+      years: +$('years').value,
+      infl: +$('infl').value / 100,
+      basePerWindow
+    };
+  }
+
+  function series(i){
+    const yrs=[], savingsCum=[], roiCum=[];
+    let bill = i.bill, saveTotal=0, resale=0;
+
+    for(let y=1; y<=i.years; y++){
+      const yearSave = bill * i.eff * 12; // savings in that year
+      saveTotal += yearSave;
+      if(y === i.sellYear) resale = i.investment * i.recoup;
+
+      const roi = saveTotal + resale - i.investment;
+      yrs.push('Y'+y);
+      savingsCum.push(Math.round(saveTotal));
+      roiCum.push(Math.round(roi));
+
+      bill *= (1 + i.infl); // next year's (inflated) bill
+    }
+    return {yrs, savingsCum, roiCum, finalSavings: saveTotal, resale, finalROI: roiCum.at(-1)};
+  }
+
+  function breakEven(roiArr){
+    for(let i=0;i<roiArr.length;i++){ if(roiArr[i]>=0) return i+1; }
+    return null;
+  }
+
+  function calc(updateChart=false){
+    const i = inputs();
+    const s = series(i);
+
+    $('kpiCost').textContent   = money(i.investment);
+    $('kpiResale').textContent = money(s.resale);
+    $('kpiSave').textContent   = money(s.finalSavings);
+    $('kpiROI').textContent    = (s.finalROI>=0?'+':'') + money(s.finalROI);
+
+    if(updateChart){
+      chart.data.labels = s.yrs;
+      chart.data.datasets[0].data = s.savingsCum;
+      chart.data.datasets[1].data = s.roiCum;
+      chart.update();
+    }
+
+    const be = breakEven(s.roiCum);
+    $('breakEvenNote').innerHTML = be
+      ? `📍 <span class="hi">Break‑even in year ${be}</span> — cumulative ROI turns positive.`
+      : `📍 ROI remains negative by year ${i.years}. Try increasing years, efficiency, or resale recoup.`;
+
+    const tierGlass = tiers[i.tier].opts.glass;
+    const selectedUpgrades = ['optPaint','optHardware','optTriple']
+        .filter(id=>$(id).checked)
+        .map(id=>({optPaint:'Paint (+$300)',optHardware:'Hardware (+$100)',optTriple:'Triple‑pane (+$100)'}[id]))
+        .join(', ') || 'None';
+
+    $('details').innerHTML = `
+      <div><strong>TIER:</strong> ${i.tier.toUpperCase()} | <strong>Glass:</strong> ${tierGlass} | <strong>Base per‑window:</strong> ${money(i.basePerWindow)}</div>
+      <div><strong>Selected upgrades:</strong> ${selectedUpgrades}</div>
+      <div><strong>Installed cost:</strong> ${i.numWindows} × ${money(i.perWindow)} = <strong>${money(i.investment)}</strong></div>
+      <div><strong>Efficiency:</strong> ${(i.eff*100).toFixed(0)}% on $${fmt(i.bill)}/mo bill; <strong>energy inflation:</strong> ${(i.infl*100).toFixed(1)}%/yr</div>
+      <div><strong>Resale:</strong> ${Math.round(i.recoup*100)}% at year ${i.sellYear} → ${money(s.resale)}</div>
+    `;
+  }
+
+  // Email modal helpers
+  function openEmail(){ $('emailModal').classList.add('open'); updatePreview(); }
+  function closeEmail(){ $('emailModal').classList.remove('open'); }
+  function buildSummary(){
+    const tier = document.querySelector('input[name="tier"]:checked').value.toUpperCase();
+    const zip = $('zip').value.trim() || '—';
+    const i = inputs();
+    const s = series(i);
+    const be = breakEven(s.roiCum);
+    return [
+      `Joyce Window ROI Estimate`,
+      `Package: ${tier} (${tiers[i.tier].opts.glass})`,
+      `ZIP: ${zip} | Energy inflation: ${(i.infl*100).toFixed(1)}%/yr`,
+      `Windows: ${i.numWindows} | Per‑window: ${money(i.perWindow)} | Installed: ${money(i.investment)}`,
+      `Efficiency improvement: ${(i.eff*100).toFixed(0)}% | Monthly bill: $${fmt(i.bill)}`,
+      `Resale recoup: ${Math.round(i.recoup*100)}% at year ${i.sellYear} → ${money(s.resale)}`,
+      `Cumulative energy savings at year ${i.years}: ${money(s.finalSavings)}`,
+      `Total ROI at year ${i.years}: ${(s.finalROI>=0?'+':'')}${money(s.finalROI)}`,
+      `Break‑even: ${be ? 'Year '+be : 'Not reached by year '+i.years}`,
+      ``,
+      `Selections: Upgrades = ${['optPaint','optHardware','optTriple'].filter(id=>$(id).checked).join(', ')||'None'}`
+    ].join('\n');
+  }
+  function updatePreview(){ $('previewBox').textContent = buildSummary(); }
+  function copySummary(){
+    const txt = buildSummary();
+    navigator.clipboard.writeText(txt).then(()=>{ $('copyMsg').textContent='Summary copied to clipboard.'; });
+  }
+  function sendEmail(){
+    const name = $('leadName').value.trim();
+    const email = $('leadEmail').value.trim();
+    const subject = encodeURIComponent('My Joyce Window ROI Estimate');
+    const body = encodeURIComponent((name?`Name: ${name}\n`:'') + (email?`Email: ${email}\n`:'') + '\n' + buildSummary());
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+
+  // Event wiring
+  document.addEventListener('input', (e)=>{
+    if (['priceSlider','effSlider','numWindows','bill','years','infl','recoup','sellYear','optPaint','optHardware','optTriple'].includes(e.target.id)){
+      if(e.target.id==='years') $('yearsOut').textContent = $('years').value;
+      if(e.target.id==='priceSlider') $('priceOut').textContent = money(e.target.value);
+      if(e.target.id==='eff
